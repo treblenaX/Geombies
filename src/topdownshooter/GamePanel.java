@@ -28,11 +28,13 @@ public class GamePanel extends JPanel implements Runnable, KeyListener, MouseLis
     private double hertz = 60.0;
     private Player player;
     
-    private float startTime;
+    private double gameStartTime;
+    private double gameElapsedTime;
     
-    private double bulletWaitTime;
+    private double bulletFiredTime;
     
     private ArrayList<Bullet> bullets;
+    private boolean readyToFire;
     private boolean fired;
     
     //Constructor
@@ -43,9 +45,10 @@ public class GamePanel extends JPanel implements Runnable, KeyListener, MouseLis
         setSize(SCREEN_WIDTH, SCREEN_HEIGHT);
         setBackground(BACKGROUND_COLOR);
         setFocusable(true);    
+        
         fired = false;
+        readyToFire = true;
         bullets = new ArrayList<>();
-        bulletWaitTime = 0;
     }
     
     //Functions
@@ -65,10 +68,8 @@ public class GamePanel extends JPanel implements Runnable, KeyListener, MouseLis
     @Override
     public void run() {
         running = true;
-        
+        gameStartTime = System.currentTimeMillis();
         player = new Player();
-        
-        
         long startTime;
         long URDTimeMillis;
         long waitTime;
@@ -112,6 +113,7 @@ public class GamePanel extends JPanel implements Runnable, KeyListener, MouseLis
     //URD Functions
     public void gameUpdate()
     {
+        updateTimer();
         player.update();
         checkFire();
     }
@@ -121,7 +123,6 @@ public class GamePanel extends JPanel implements Runnable, KeyListener, MouseLis
         if (fired)
         {
             bullets.add(new Bullet(player));
-            
             setFired(false);
         }
     }
@@ -131,6 +132,11 @@ public class GamePanel extends JPanel implements Runnable, KeyListener, MouseLis
         repaint();
     }
     
+    public void updateTimer()
+    {
+        gameElapsedTime = System.currentTimeMillis() - gameStartTime;
+    }
+    
     //GUI Functions
     public void drawFPSCounter(Graphics g)
     {
@@ -138,13 +144,31 @@ public class GamePanel extends JPanel implements Runnable, KeyListener, MouseLis
         g.drawString("FPS: " + (int) averageFPS, 10, 20);
     }
     
+    public void drawGameTimer(Graphics g)
+    {
+        g.setColor(Color.BLACK);
+        g.drawString("Time: " + (gameElapsedTime / 1000), 100, 20);
+    }
+    
     //Bullet and Player Functions
     public void checkFire()
     {
+        double bulletWaitTime = 0;
         fired = false;
-        if (player.getFire())
+        if (player.getFire() && readyToFire)
         {
             fired = true;
+            readyToFire = false;
+            bulletFiredTime = System.currentTimeMillis();
+        }
+        if (!readyToFire)
+        {
+            bulletWaitTime = System.currentTimeMillis() - bulletFiredTime;
+            if (bulletWaitTime > BULLET_DELAY)
+            {
+                bulletWaitTime = 0;
+                readyToFire = true;
+            }
         }
     }
     //Getters and Setters
@@ -159,14 +183,14 @@ public class GamePanel extends JPanel implements Runnable, KeyListener, MouseLis
     {
         super.paintComponent(g); 
         drawFPSCounter(g);
+        drawGameTimer(g);
         player.draw((Graphics2D) g);
         if (!bullets.isEmpty())
         {
            for (Bullet bullet: bullets)
            {
                bullet.draw((Graphics2D) g);
-           }
-                
+           }            
         }
     }
 
