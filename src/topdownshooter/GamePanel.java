@@ -12,6 +12,7 @@ import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
+import java.awt.event.MouseMotionListener;
 import java.util.ArrayList;
 import javax.swing.JPanel;
 import static topdownshooter.Constants.*;
@@ -20,7 +21,7 @@ import static topdownshooter.Constants.*;
  *
  * @author elber
  */
-public class GamePanel extends JPanel implements Runnable, KeyListener, MouseListener {  
+public class GamePanel extends JPanel implements Runnable, KeyListener, MouseMotionListener, MouseListener {  
     //Fields
     private Thread t;
     private int averageFPS;
@@ -36,6 +37,9 @@ public class GamePanel extends JPanel implements Runnable, KeyListener, MouseLis
     private ArrayList<Bullet> bullets;
     private boolean readyToFire;
     private boolean fired;
+    
+    private double mouseX;
+    private double mouseY;
     
     //Constructor
     public GamePanel()
@@ -63,6 +67,8 @@ public class GamePanel extends JPanel implements Runnable, KeyListener, MouseLis
         }
         requestFocusInWindow();
         addKeyListener(this);
+        addMouseMotionListener(this);
+        addMouseListener(this);
     }
     
     @Override
@@ -115,6 +121,20 @@ public class GamePanel extends JPanel implements Runnable, KeyListener, MouseLis
     {
         updateTimer();
         player.update();
+        if (!bullets.isEmpty())
+        {
+            for (int i = 0; i < bullets.size(); i++)
+            {
+                if (bullets.get(i).x < 0 || bullets.get(i).x > SCREEN_WIDTH || bullets.get(i).y < 0 || bullets.get(i).y > SCREEN_HEIGHT)
+                {
+                    bullets.remove(i);
+                }
+                if (!bullets.isEmpty())
+                {
+                    bullets.get(i).update();
+                }
+            }
+        }
         checkFire();
     }
     
@@ -122,14 +142,14 @@ public class GamePanel extends JPanel implements Runnable, KeyListener, MouseLis
     {
         if (fired)
         {
-            bullets.add(new Bullet(player));
+            bullets.add(new Bullet(player, getMouseDirection()));
             setFired(false);
         }
     }
     
     public void gameDraw()
     {
-        repaint();
+        repaint(); 
     }
     
     public void updateTimer()
@@ -171,10 +191,38 @@ public class GamePanel extends JPanel implements Runnable, KeyListener, MouseLis
             }
         }
     }
+    //Mouse Function
+    public double getMouseDirection()
+    {
+        double y = -(getMouseY() - player.getY());
+        double x = getMouseX() - player.getX();
+        return Math.atan2(y, x);
+    }
+    
     //Getters and Setters
     public void setFired(boolean b)
     {
         fired = b;
+    }
+    
+    public void setMouseX(MouseEvent e)
+    {
+        mouseX = e.getX();
+    }
+    
+    public void setMouseY(MouseEvent e)
+    {
+        mouseY = e.getY();
+    }
+    
+    public double getMouseX()
+    {
+        return mouseX;
+    }
+    
+    public double getMouseY()
+    {
+        return mouseY;
     }
     
     //Overriden Functions
@@ -184,7 +232,6 @@ public class GamePanel extends JPanel implements Runnable, KeyListener, MouseLis
         super.paintComponent(g); 
         drawFPSCounter(g);
         drawGameTimer(g);
-        player.draw((Graphics2D) g);
         if (!bullets.isEmpty())
         {
            for (Bullet bullet: bullets)
@@ -192,6 +239,7 @@ public class GamePanel extends JPanel implements Runnable, KeyListener, MouseLis
                bullet.draw((Graphics2D) g);
            }            
         }
+        player.draw((Graphics2D) g);
     }
 
     @Override
@@ -218,11 +266,6 @@ public class GamePanel extends JPanel implements Runnable, KeyListener, MouseLis
         if (keyCode == KeyEvent.VK_S)
         {
             player.setDown(true);
-        }
-        //Fire
-        if (keyCode == KeyEvent.VK_ENTER)
-        {
-            player.setFire(true);
         }
     }
 
@@ -255,28 +298,45 @@ public class GamePanel extends JPanel implements Runnable, KeyListener, MouseLis
     }
 
     @Override
+    public void mouseDragged(MouseEvent me) {
+        setMouseX(me);
+        setMouseY(me);
+    }
+
+    @Override
+    public void mouseMoved(MouseEvent me) {
+        setMouseX(me);
+        setMouseY(me);
+    }
+
+    @Override
     public void mouseClicked(MouseEvent me) {
-        
     }
 
     @Override
     public void mousePressed(MouseEvent me) {
-        
+        int button = me.getButton();
+        if (button == MouseEvent.BUTTON1)
+        {
+            player.setFire(true);
+        }
     }
 
     @Override
     public void mouseReleased(MouseEvent me) {
-        
+        int button = me.getButton();
+        if (button == MouseEvent.BUTTON1)
+        {
+            player.setFire(false);
+        }
     }
 
     @Override
     public void mouseEntered(MouseEvent me) {
-        
     }
 
     @Override
     public void mouseExited(MouseEvent me) {
-        
     }
     
 }
